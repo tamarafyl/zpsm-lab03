@@ -46,14 +46,14 @@ const Calculator = () => {
               if (isOperator) bgColor = 'orange';
               if (isAC || isEmpty) bgColor = '#333';
 
-              // Об’єднання двох порожніх кнопок у верхньому рядку
+
               let flexStyle = {};
               if (rowIndex === 0 && (colIndex === 1 || colIndex === 2)) {
                 if (colIndex === 1) {
-                  flexStyle = { flex: 2 }; // перша кнопка займає простір двох
-                  value = ''; // залишаємо порожню
+                  flexStyle = { flex: 2 };
+                  value = '';
                 } else if (colIndex === 2) {
-                  return null; // другу не рендеримо
+                  return null;
                 }
               }
 
