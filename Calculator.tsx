@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
   ScrollView,
 } from 'react-native';
 import { evaluate } from 'mathjs';
+
+
+import CalculatorButton from './CalculatorButton';
 
 type Token = {
   disp: string;
@@ -64,9 +66,9 @@ const TOKEN_MAP: Record<string, Token> = {
   'π': { disp: 'π', expr: 'pi' },
   'e': { disp: 'e', expr: 'e' },
 
-  '√x': { disp: '√', expr: 'sqrt(', openPar: 1 },
-  '∛x': { disp: '∛', expr: 'cbrt(', openPar: 1 },
-  'ʸ√x': { disp: 'ʸ√x', expr: '' }, // handled separately
+  '√x': { disp: '√(', expr: 'sqrt(', openPar: 1 },
+  '∛x': { disp: '∛(', expr: 'cbrt(', openPar: 1 },
+  'ʸ√x': { disp: 'ʸ√x', expr: '' },
   'x²': { disp: '²', expr: '^2' },
   'x³': { disp: '³', expr: '^3' },
   'xʸ': { disp: '^', expr: '^(', openPar: 1 },
@@ -101,9 +103,10 @@ const Calculator: React.FC = () => {
 
   const [isRadian, setIsRadian] = useState(true);
 
-
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+
+
 
   const displayString = tokens.length === 0 ? '0' : tokens.map((t) => t.disp).join('');
 
@@ -208,7 +211,6 @@ const Calculator: React.FC = () => {
               let value = label;
               let flexStyle: any = {};
 
-              // ======= ПОРТРЕТНИЙ РЕЖИМ =======
               if (!isLandscape) {
                 if (rowIndex === 0 && (colIndex === 1 || colIndex === 2)) {
                   if (colIndex === 1) {
@@ -228,7 +230,6 @@ const Calculator: React.FC = () => {
                 }
               }
 
-              // ======= ГОРИЗОНТАЛЬНИЙ РЕЖИМ =======
               if (isLandscape) {
                 if (rowIndex === 4 && (colIndex === 6 || colIndex === 7)) {
                   if (colIndex === 6) {
@@ -256,13 +257,16 @@ const Calculator: React.FC = () => {
                 );
 
               return (
-                <TouchableOpacity
+                <CalculatorButton
                   key={colIndex}
-                  style={[styles.button, flexStyle, { backgroundColor: bg }]}
+                  title={value}
+                  backgroundColor={bg}
+                  borderColor="#000"
+                  disable={!value}
                   onPress={() => handlePress(value)}
-                >
-                  <Text style={styles.buttonText}>{value}</Text>
-                </TouchableOpacity>
+                  color="#fff"
+                  flexStyle={flexStyle}
+                />
               );
             })}
           </View>
