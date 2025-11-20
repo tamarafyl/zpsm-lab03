@@ -91,6 +91,18 @@ const TOKEN_MAP: Record<string, Token> = {
   'Rand': { disp: 'Rand', expr: 'random()' },
   'EE': { disp: 'EE', expr: 'e+' },
 };
+const TOKEN_MAP_SECOND: Record<string, Token> = {
+  'sin': { disp: 'sin⁻¹', expr: 'asin(', openPar: 1 },
+  'cos': { disp: 'cos⁻¹', expr: 'acos(', openPar: 1 },
+  'tan': { disp: 'tan⁻¹', expr: 'atan(', openPar: 1 },
+  'sinh': { disp: 'sinh⁻¹', expr: 'asinh(', openPar: 1 },
+  'cosh': { disp: 'cosh⁻¹', expr: 'acosh(', openPar: 1 },
+  'tanh': { disp: 'tanh⁻¹', expr: 'atanh(', openPar: 1 },
+  'ln': { disp: 'log₂', expr: 'log2(', openPar: 1 },      // Змінюємо ln на log₂
+  'log₁₀': { disp: 'logᵧ', expr: '' },                    // log₁₀ стане logᵧ (поки без реалізації)
+  'eˣ': { disp: '2ˣ', expr: '2^(', openPar: 1 },          // eˣ стане 2ˣ
+  '10ˣ': { disp: 'yˣ', expr: '^(', openPar: 1 },          // 10ˣ стане yˣ (як звичайний степінь)
+};
 
 const Calculator: React.FC = () => {
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -102,6 +114,9 @@ const Calculator: React.FC = () => {
   });
 
   const [isRadian, setIsRadian] = useState(true);
+
+  const [memory, setMemory] = useState<number>(0);
+  const [isSecondActive, setIsSecondActive] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
@@ -123,20 +138,124 @@ const Calculator: React.FC = () => {
       return;
     }
 
+    if (label === 'Rad') {
+        setIsRadian((prev) => !prev);
+        return;
+    }
+
+if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
+    let currentValue = 0;
+    try {
+        // Обчислюємо поточне значення на екрані, щоб додати/відняти його
+        currentValue = evaluate(buildExprString());
+    } catch {
+        // Якщо вираз недійсний, вважаємо поточне значення за 0
+        currentValue = 0;
+    }
+ switch (label) {
+        case 'mc':
+            setMemory(0);
+            break;
+        case 'mr':
+            // Додаємо число з пам'яті до поточного виразу
+            setTokens((prev) => [...prev, { disp: String(memory), expr: String(memory) }]);
+            break;
+        case 'm+':
+            setMemory((prevMemory) => prevMemory + currentValue);
+            // Очищуємо екран після операції з пам'яттю
+            setTokens([]);
+            break;
+        case 'm-':
+            setMemory((prevMemory) => prevMemory - currentValue);
+            // Очищуємо екран після операції з пам'яттю
+            setTokens([]);
+            break;
+    }
+    return; // Завершуємо обробку
+}
+ if (label === '2ⁿᵈ') {
+        setIsSecondActive((prev) => !prev);
+        return;
+    }
+
+    if (label === '+/-') {
+        setTokens((prev) => {
+            if (prev.length === 0) {
+                return [{ disp: '-', expr: '-' }];
+            }
+            // Шукаємо останній оператор
+            let lastOperatorIndex = -1;
+            for (let i = prev.length - 1; i >= 0; i--) {
+                if (['+', '-', '*', '/'].includes(prev[i].expr)) {
+                    lastOperatorIndex = i;
+                    break;
+                }
+            }
+         // Якщо операторів немає, змінюємо знак всього виразу
+                    if (lastOperatorIndex === -1) {
+                        if (prev[0].expr === '-') {
+                            return prev.slice(1); // Видалити мінус
+                        } else {
+                            return [{ disp: '-', expr: '-' }, ...prev]; // Додати мінус
+                        }
+                    }
+                    // Якщо є оператор, змінюємо знак числа після нього
+                    const numberPart = prev.slice(lastOperatorIndex + 1);
+                    if (numberPart.length === 0) return prev; // Немає числа для зміни знаку
+
+                    if (prev[lastOperatorIndex + 1].expr === '-') {
+                         prev.splice(lastOperatorIndex + 1, 1); // Видалити мінус
+                         return [...prev];
+                    } else {
+                        prev.splice(lastOperatorIndex + 1, 0, { disp: '-', expr: '-' }); // Додати мінус
+                                         return [...prev];
+                                    }
+                                });
+                                return;
+                            }
+
+                            if (label === '%') {
+                                setTokens((prev) => [...prev, { disp: '%', expr: '/100' }]);
+                                // Для більш складної логіки відсотків потрібні значні зміни
+                                return;
+                            }
     if (label === '=') {
       try {
+        // Блок для режиму кореня (його ми не чіпаємо)
         if (rootMode.active) {
           if (rootMode.degree && rootMode.base) {
             const expr = `nthRoot(${rootMode.base}, ${rootMode.degree})`;
+            // Просто обчислюємо, без логіки Rad/Deg
             const result = evaluate(expr);
             setTokens([{ disp: String(result), expr: String(result) }]);
-          } else setTokens([{ disp: 'Błąd', expr: '0' }]);
+          } else {
+            setTokens([{ disp: 'Błąd', expr: '0' }]);
+          }
           setRootMode({ active: false, stage: null, degree: '', base: '' });
           return;
         }
+
+        // Блок для всіх інших обчислень (ось тут правильне місце!)
         const expr = buildExprString();
-        const result = evaluate(expr);
+
+        // --- ВСТАВТЕ ЛОГІКУ Rad/Deg СЮДИ ---
+        let result;
+        if (isRadian) {
+          // Режим "Rad", обчислюємо як є
+          result = evaluate(expr);
+        } else {
+          // Режим "Deg", перевизначаємо тригонометричні функції
+          const scope = {
+            sin: (x: number) => Math.sin((x * Math.PI) / 180),
+            cos: (x: number) => Math.cos((x * Math.PI) / 180),
+            tan: (x: number) => Math.tan((x * Math.PI) / 180),
+          };
+          result = evaluate(expr, scope);
+        }
+        // ------------------------------------
+
         setTokens([{ disp: String(result), expr: String(result) }]);
+
       } catch {
         setTokens([{ disp: 'Błąd', expr: '0' }]);
       }
@@ -179,12 +298,27 @@ const Calculator: React.FC = () => {
       setTokens([]);
       return;
     }
-    if (label in TOKEN_MAP) {
-      const tk = TOKEN_MAP[label];
-      if (!tk.expr) return;
-      setTokens((prev) => [...prev, { disp: tk.disp, expr: tk.expr, openPar: tk.openPar }]);
-      return;
-    }
+    const currentTokenMap = isSecondActive ? TOKEN_MAP_SECOND : TOKEN_MAP;
+
+        if (label in currentTokenMap) {
+          const tk = currentTokenMap[label];
+          if (tk.expr === '') {
+            // Сюди можна додати логіку для кнопок типу logᵧ, якщо потрібно
+            return;
+          }
+          setTokens((prev) => [...prev, { disp: tk.disp, expr: tk.expr, openPar: tk.openPar }]);
+          // Вимикаємо режим 2ⁿᵈ після натискання іншої кнопки
+          setIsSecondActive(false);
+          return;
+        }
+    // Якщо кнопка не знайдена в активній мапі, перевіримо основну
+        else if (label in TOKEN_MAP) {
+          const tk = TOKEN_MAP[label];
+          if (!tk.expr) return;
+          setTokens((prev) => [...prev, { disp: tk.disp, expr: tk.expr, openPar: tk.openPar }]);
+          setIsSecondActive(false);
+          return;
+        }
 
     if (label) {
       setTokens((prev) => [...prev, { disp: label, expr: label }]);
@@ -209,6 +343,15 @@ const Calculator: React.FC = () => {
             {currentColumns.map((col, colIndex) => {
               const label = col[rowIndex];
               let value = label;
+
+              if (value === 'Rad') {
+                  value = isRadian ? 'Rad' : 'Deg'; // Динамічно змінюємо текст
+                }
+
+             if (isSecondActive && label in TOKEN_MAP_SECOND) {
+                            value = TOKEN_MAP_SECOND[label].disp;
+                          }
+
               let flexStyle: any = {};
 
               if (!isLandscape) {
@@ -242,6 +385,8 @@ const Calculator: React.FC = () => {
               const isOperator = ['/', '*', '-', '+', '='].includes(value);
               const isAC = value === 'AC';
               const isEmpty = !value;
+
+              const isSecondButtonActive = value === '2ⁿᵈ' && isSecondActive;
 
               let bg = '#808080';
               if (isOperator) bg = 'orange';
