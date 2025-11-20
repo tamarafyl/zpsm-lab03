@@ -98,10 +98,10 @@ const TOKEN_MAP_SECOND: Record<string, Token> = {
   'sinh': { disp: 'sinh⁻¹', expr: 'asinh(', openPar: 1 },
   'cosh': { disp: 'cosh⁻¹', expr: 'acosh(', openPar: 1 },
   'tanh': { disp: 'tanh⁻¹', expr: 'atanh(', openPar: 1 },
-  'ln': { disp: 'log₂', expr: 'log2(', openPar: 1 },      // Змінюємо ln на log₂
-  'log₁₀': { disp: 'logᵧ', expr: '' },                    // log₁₀ стане logᵧ (поки без реалізації)
-  'eˣ': { disp: '2ˣ', expr: '2^(', openPar: 1 },          // eˣ стане 2ˣ
-  '10ˣ': { disp: 'yˣ', expr: '^(', openPar: 1 },          // 10ˣ стане yˣ (як звичайний степінь)
+  'ln': { disp: 'log₂', expr: 'log2(', openPar: 1 },
+  'log₁₀': { disp: 'logᵧ', expr: '' },
+  'eˣ': { disp: '2ˣ', expr: '2^(', openPar: 1 },
+  '10ˣ': { disp: 'yˣ', expr: '^(', openPar: 1 },
 };
 
 const Calculator: React.FC = () => {
@@ -146,10 +146,8 @@ const Calculator: React.FC = () => {
 if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
     let currentValue = 0;
     try {
-        // Обчислюємо поточне значення на екрані, щоб додати/відняти його
         currentValue = evaluate(buildExprString());
     } catch {
-        // Якщо вираз недійсний, вважаємо поточне значення за 0
         currentValue = 0;
     }
  switch (label) {
@@ -157,21 +155,20 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
             setMemory(0);
             break;
         case 'mr':
-            // Додаємо число з пам'яті до поточного виразу
             setTokens((prev) => [...prev, { disp: String(memory), expr: String(memory) }]);
             break;
         case 'm+':
             setMemory((prevMemory) => prevMemory + currentValue);
-            // Очищуємо екран після операції з пам'яттю
+
             setTokens([]);
             break;
         case 'm-':
             setMemory((prevMemory) => prevMemory - currentValue);
-            // Очищуємо екран після операції з пам'яттю
+
             setTokens([]);
             break;
     }
-    return; // Завершуємо обробку
+    return;
 }
  if (label === '2ⁿᵈ') {
         setIsSecondActive((prev) => !prev);
@@ -183,7 +180,7 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
             if (prev.length === 0) {
                 return [{ disp: '-', expr: '-' }];
             }
-            // Шукаємо останній оператор
+
             let lastOperatorIndex = -1;
             for (let i = prev.length - 1; i >= 0; i--) {
                 if (['+', '-', '*', '/'].includes(prev[i].expr)) {
@@ -191,23 +188,23 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
                     break;
                 }
             }
-         // Якщо операторів немає, змінюємо знак всього виразу
+
                     if (lastOperatorIndex === -1) {
                         if (prev[0].expr === '-') {
-                            return prev.slice(1); // Видалити мінус
+                            return prev.slice(1);
                         } else {
-                            return [{ disp: '-', expr: '-' }, ...prev]; // Додати мінус
+                            return [{ disp: '-', expr: '-' }, ...prev];
                         }
                     }
-                    // Якщо є оператор, змінюємо знак числа після нього
+
                     const numberPart = prev.slice(lastOperatorIndex + 1);
-                    if (numberPart.length === 0) return prev; // Немає числа для зміни знаку
+                    if (numberPart.length === 0) return prev;
 
                     if (prev[lastOperatorIndex + 1].expr === '-') {
-                         prev.splice(lastOperatorIndex + 1, 1); // Видалити мінус
+                         prev.splice(lastOperatorIndex + 1, 1);
                          return [...prev];
                     } else {
-                        prev.splice(lastOperatorIndex + 1, 0, { disp: '-', expr: '-' }); // Додати мінус
+                        prev.splice(lastOperatorIndex + 1, 0, { disp: '-', expr: '-' });
                                          return [...prev];
                                     }
                                 });
@@ -216,16 +213,15 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
 
                             if (label === '%') {
                                 setTokens((prev) => [...prev, { disp: '%', expr: '/100' }]);
-                                // Для більш складної логіки відсотків потрібні значні зміни
                                 return;
                             }
     if (label === '=') {
       try {
-        // Блок для режиму кореня (його ми не чіпаємо)
+
         if (rootMode.active) {
           if (rootMode.degree && rootMode.base) {
             const expr = `nthRoot(${rootMode.base}, ${rootMode.degree})`;
-            // Просто обчислюємо, без логіки Rad/Deg
+
             const result = evaluate(expr);
             setTokens([{ disp: String(result), expr: String(result) }]);
           } else {
@@ -235,16 +231,15 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
           return;
         }
 
-        // Блок для всіх інших обчислень (ось тут правильне місце!)
         const expr = buildExprString();
 
-        // --- ВСТАВТЕ ЛОГІКУ Rad/Deg СЮДИ ---
+
         let result;
         if (isRadian) {
-          // Режим "Rad", обчислюємо як є
+
           result = evaluate(expr);
         } else {
-          // Режим "Deg", перевизначаємо тригонометричні функції
+
           const scope = {
             sin: (x: number) => Math.sin((x * Math.PI) / 180),
             cos: (x: number) => Math.cos((x * Math.PI) / 180),
@@ -252,7 +247,7 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
           };
           result = evaluate(expr, scope);
         }
-        // ------------------------------------
+
 
         setTokens([{ disp: String(result), expr: String(result) }]);
 
@@ -303,15 +298,15 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
         if (label in currentTokenMap) {
           const tk = currentTokenMap[label];
           if (tk.expr === '') {
-            // Сюди можна додати логіку для кнопок типу logᵧ, якщо потрібно
+
             return;
           }
           setTokens((prev) => [...prev, { disp: tk.disp, expr: tk.expr, openPar: tk.openPar }]);
-          // Вимикаємо режим 2ⁿᵈ після натискання іншої кнопки
+
           setIsSecondActive(false);
           return;
         }
-    // Якщо кнопка не знайдена в активній мапі, перевіримо основну
+
         else if (label in TOKEN_MAP) {
           const tk = TOKEN_MAP[label];
           if (!tk.expr) return;
@@ -345,7 +340,7 @@ if (['mc', 'mr', 'm+', 'm-'].includes(label)) {
               let value = label;
 
               if (value === 'Rad') {
-                  value = isRadian ? 'Rad' : 'Deg'; // Динамічно змінюємо текст
+                  value = isRadian ? 'Rad' : 'Deg';
                 }
 
              if (isSecondActive && label in TOKEN_MAP_SECOND) {
